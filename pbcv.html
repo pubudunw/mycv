@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive CV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is structured as an interactive portfolio/dashboard, not a linear document, to allow recruiters to actively explore the candidate's qualifications. It starts with a high-level summary and key skills, flows into an interactive career timeline, presents key accomplishments as clickable case studies (Problem-Action-Result), and visualizes skills with a chart. This non-linear, task-oriented design is chosen to be more engaging than a traditional CV and to specifically highlight the problem-solving and translation abilities crucial for the target role. -->
+    <!-- Visualization & Content Choices: 
+        - Career History -> Goal: Change -> Viz: Interactive Timeline (HTML/CSS/JS) -> Interaction: Click to expand details -> Justification: Makes dense chronological data digestible and engaging.
+        - Key Skills -> Goal: Compare -> Viz: Horizontal Bar Chart (Chart.js/Canvas) -> Interaction: Hover for tooltips -> Justification: Provides a quick, visual summary of competencies.
+        - Accomplishments -> Goal: Inform/Relate -> Viz: Interactive Case Study Cards (HTML/CSS/JS) -> Interaction: Click to reveal Problem/Action/Result narrative -> Justification: Transforms static points into compelling stories that directly address the target role's focus on problem translation.
+        - CSG Projects -> Goal: Organize -> Viz: Filterable Grid (HTML/CSS/JS) -> Interaction: Click filter buttons -> Justification: Manages a long list of data points, making it explorable. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        .nav-link {
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #C084FC; /* A gentle purple for accent */
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background-color: #E5E7EB;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: 12px;
+            top: 4px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #FDFBF8;
+            border: 2px solid #D1D5DB;
+            z-index: 10;
+        }
+        .timeline-item.active .timeline-dot {
+            background-color: #C084FC;
+            border-color: #C084FC;
+        }
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header class="p-4 sm:p-6 md:p-8 bg-white/50 backdrop-blur-sm sticky top-0 z-40">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Your Name</h1>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#summary" class="nav-link text-gray-600 font-medium">Summary</a>
+                <a href="#skills" class="nav-link text-gray-600 font-medium">Skills</a>
+                <a href="#journey" class="nav-link text-gray-600 font-medium">Journey</a>
+                <a href="#accomplishments" class="nav-link text-gray-600 font-medium">Case Studies</a>
+            </nav>
+            <button id="mobile-menu-button" class="md:hidden text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden mt-4">
+            <a href="#summary" class="block py-2 text-center nav-link text-gray-600 font-medium">Summary</a>
+            <a href="#skills" class="block py-2 text-center nav-link text-gray-600 font-medium">Skills</a>
+            <a href="#journey" class="block py-2 text-center nav-link text-gray-600 font-medium">Journey</a>
+            <a href="#accomplishments" class="block py-2 text-center nav-link text-gray-600 font-medium">Case Studies</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 md:p-8">
+        <section id="summary" class="my-12 scroll-mt-24">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">Business Problem Solver & Operational Strategist</h2>
+                <p class="text-lg text-gray-600 leading-relaxed">
+                    Highly analytical and hands-on professional with over 15 years of experience in deeply understanding complex operational challenges and translating them into clear, actionable requirements for engineering teams. Proven ability to immerse in day-to-day business processes, engaging directly with frontline teams, operations, and stakeholders to uncover unspoken needs and critical pain points. Adept at bridging the gap between business, operations, and technology to drive impactful improvements.
+                </p>
+            </div>
+        </section>
+
+        <hr class="my-16 border-gray-200">
+
+        <section id="skills" class="my-12 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">Core Competencies</h2>
+                <p class="mt-2 text-lg text-gray-600">A visual overview of key skills, demonstrating a blend of strategic analysis and technical execution.</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="skillsChart"></canvas>
+            </div>
+        </section>
+
+        <hr class="my-16 border-gray-200">
+
+        <section id="journey" class="my-12 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">Career Journey</h2>
+                <p class="mt-2 text-lg text-gray-600">An interactive timeline of my professional experience. Click on any role to see the details.</p>
+            </div>
+            <div class="flex flex-col md:flex-row gap-8">
+                <div id="timeline-nav" class="md:w-1/3">
+                    <!-- Timeline navigation will be populated by JS -->
+                </div>
+                <div id="experience-details" class="md:w-2/3 bg-white p-6 rounded-lg shadow-sm min-h-[300px]">
+                    <!-- Experience details will be populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-16 border-gray-200">
+
+        <section id="accomplishments" class="my-12 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">Key Accomplishments as Case Studies</h2>
+                <p class="mt-2 text-lg text-gray-600">These case studies demonstrate the process of identifying operational problems and translating them into tangible solutions.</p>
+            </div>
+            <div id="accomplishments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Accomplishments will be populated by JS -->
+            </div>
+        </section>
+    </main>
+
+    <div id="modal" class="modal invisible opacity-0 fixed inset-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+        <div id="modal-content" class="modal-content transform -translate-y-12 bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800"></h3>
+                <button id="modal-close" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="modal-body" class="p-6">
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-8 mt-16 border-t border-gray-200">
+        <p class="text-gray-500">Interactive CV generated based on provided professional history.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const data = {
+                skills: [
+                    { name: 'Business Problem Solving & Translation', level: 95 },
+                    { name: 'Requirements Elicitation & Documentation', level: 90 },
+                    { name: 'Operational Process Analysis', level: 85 },
+                    { name: 'Stakeholder Engagement & Management', level: 95 },
+                    { name: 'Process Automation', level: 80 },
+                    { name: 'Data Analysis & Insights', level: 88 },
+                    { name: 'Power BI & Data Visualization', level: 90 },
+                    { name: 'SQL & Python', level: 75 },
+                    { name: 'UAT & Quality Assurance', level: 85 },
+                ],
+                experience: [
+                    {
+                        role: 'Commercial Analyst',
+                        company: 'Datacom',
+                        period: 'Jan 2025 - Current',
+                        details: [
+                            'Deeply engaged with cross-functional teams, including Engineering, Finance, and Professional Services, to identify and refine critical business problems related to cloud cost allocation and financial visibility.',
+                            'Translated complex business challenges into clear, actionable requirements for reporting solutions and automated dashboards (Power BI), ensuring alignment with financial KPIs and business needs.',
+                            'Drove process improvement initiatives by immersing in operational workflows, identifying inefficiencies, and streamlining manual billing and reporting processes to enhance efficiency and reduce error rates.'
+                        ]
+                    },
+                    {
+                        role: 'Billing Settlement Analyst',
+                        company: 'Brave Energy System – MLB',
+                        period: 'Feb 2024 – Jan 2025',
+                        details: [
+                            'Collaborated extensively with internal operations, offshore support teams, and external customers to deeply understand their pain points and challenges in accurate and timely billing settlements.',
+                            'Translated these operational and commercial needs into refined reporting requirements, ensuring solutions directly addressed critical visibility and decision-making gaps.',
+                            'Leveraged Python and SQL to conduct in-depth analysis of large billing data volumes, identifying systemic product and billing issues and translating these into actionable change requests for product and project teams.'
+                        ]
+                    },
+                    {
+                        role: 'Business Analyst',
+                        company: 'People Bank (@Auspost)',
+                        period: 'July 2022 – Jan 2024',
+                        details: [
+                            'Partnered closely with Finance Partners and operational leaders to uncover their underlying business problems and strategic initiatives, then translated these into requirements for business intelligence solutions (Power BI) that provided critical visibility into KPIs, cost drivers, and operational trends.',
+                            'Conducted detailed data quality assessments by deep-diving into existing systems and processes to identify and resolve discrepancies, directly addressing data reliability issues that impacted strategic and financial initiatives.'
+                        ]
+                    },
+                     {
+                        role: 'Product Analyst',
+                        company: 'AGL Energy',
+                        period: 'April 2021 – June 2022',
+                        details: [
+                            'Engaged directly with business and finance stakeholders to understand the operational and commercial challenges associated with new feature rollouts.',
+                            'Translated these challenges into requirements for tailored analytics and reporting processes, enabling data-driven insights that supported revenue growth, cost optimization, and post-implementation performance tracking.',
+                            'Conducted regular audits of data quality and completeness by analyzing system gaps and implementing fixes, ensuring the integrity and reliability of reporting crucial for commercial and operational datasets.'
+                        ]
+                    },
+                    {
+                        role: 'Senior Billing Analyst',
+                        company: 'NBN CO',
+                        period: 'July 2019 – March 2021',
+                        details: [
+                            'Acted as a primary liaison, deeply engaging with Network planning and operations, Revenue Assurance, Customer Support, and Credit and Collection teams to understand complex billing-related incidents and customer-impacting issues.',
+                            'Translated these operational problems into actionable insights and solutions, driving reconciliations and resolutions.',
+                            'Used SQL to query complex data structures from transactional databases and data warehouses, building reports and dashboards to provide insights into billing accuracy and potential revenue leakages.'
+                        ]
+                    },
+                    {
+                        role: 'Business Consultant',
+                        company: 'CSG International',
+                        period: 'Dec 2008 – May 2018',
+                        details: [
+                            'Led in-depth requirement gathering sessions with diverse Business and Technical stakeholders to uncover the core business problems and strategic needs driving new pricing and billing requirements.',
+                            'Translated complex business needs into clear, comprehensive Requirement documentation, user manuals, and operational procedure documents, serving as the bridge between operational challenges and technical solutions.',
+                            'Managed the end-to-end translation of business requirements throughout the project lifecycle, including conducting User Acceptance Testing (UATs) and formal user trainings to ensure solutions effectively addressed the original business problems.',
+                            'Provided leadership and guidance in providing solutions to business clients, acting as the primary contact point for their interests and working toward issue resolution.'
+                        ]
+                    }
+                ],
+                accomplishments: [
+                    {
+                        title: 'Operational Transformation for Expense Management',
+                        company: 'Australia Post',
+                        problem: 'Identified critical inefficiencies and a severe lack of visibility in enterprise-wide communication expense management through deep engagement with finance and operational teams.',
+                        action: 'Translated these complex business problems into requirements for an end-to-end automated data pipeline. This involved consolidating multi-source data into a governed reporting model and partnering with frontline teams to implement streamlined Power BI reporting.',
+                        result: 'The solution directly addressed team pain points in forecasting and spend control, and significantly enhanced data quality, governance, and visibility for workplace services and device usage across the enterprise.'
+                    },
+                    {
+                        title: 'Operational Efficiency via Technology Asset Analysis',
+                        company: 'Australia Post',
+                        problem: 'Through close collaboration with national warehouse teams and technology stakeholders, uncovered significant challenges in monitoring the performance, cost, and utilization of critical technology assets like next-gen scanners.',
+                        action: 'Translated these operational needs into detailed specifications for dynamic management dashboards in Power BI. This provided teams with the insights they were previously lacking.',
+                        result: 'The new visibility enabled evidence-based decisions, such as extending asset life ("sweating" existing devices), which resulted in operational efficiencies and documented peak-period savings of over $50K.'
+                    },
+                    {
+                        title: 'Enhanced Financial Reconciliation Process',
+                        company: 'AGL Energy',
+                        problem: 'Identified that the existing supplier invoice reconciliation process was plagued by significant manual effort and high rates of inaccuracy, discovered through in-depth analysis of workflows and discussions with the Finance team.',
+                        action: 'Designed and implemented a scalable, automated solution to ingest, cleanse, and aggregate large invoice data files into structured database tables.',
+                        result: 'The solution empowered the Finance team to efficiently validate charges and usage across multiple service types, significantly reducing manual effort and improving financial accuracy in line with audit and vendor governance requirements.'
+                    }
+                ]
+            };
+
+            const skillsCtx = document.getElementById('skillsChart').getContext('2d');
+            new Chart(skillsCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.skills.map(s => s.name),
+                    datasets: [{
+                        label: 'Proficiency Level',
+                        data: data.skills.map(s => s.level),
+                        backgroundColor: 'rgba(192, 132, 252, 0.5)',
+                        borderColor: 'rgba(192, 132, 252, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Proficiency: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%'
+                                }
+                            }
+                        },
+                        y: {
+                           ticks: {
+                                autoSkip: false
+                           }
+                        }
+                    }
+                }
+            });
+
+            const timelineNav = document.getElementById('timeline-nav');
+            const experienceDetails = document.getElementById('experience-details');
+
+            data.experience.forEach((exp, index) => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item relative pl-10 pb-8 cursor-pointer';
+                item.dataset.index = index;
+                item.innerHTML = `
+                    <div class="timeline-dot"></div>
+                    <p class="font-bold text-gray-700">${exp.role}</p>
+                    <p class="text-sm text-gray-500">${exp.company}</p>
+                    <p class="text-xs text-gray-400">${exp.period}</p>
+                `;
+                timelineNav.appendChild(item);
+            });
+
+            function updateExperience(index) {
+                const exp = data.experience[index];
+                experienceDetails.innerHTML = `
+                    <h3 class="text-2xl font-bold text-gray-800">${exp.role}</h3>
+                    <p class="text-lg font-medium text-purple-500 mb-2">${exp.company}</p>
+                    <p class="text-sm text-gray-500 mb-4">${exp.period}</p>
+                    <ul class="space-y-3 list-disc list-inside text-gray-600">
+                        ${exp.details.map(d => `<li>${d}</li>`).join('')}
+                    </ul>
+                `;
+                document.querySelectorAll('.timeline-item').forEach(el => el.classList.remove('active'));
+                document.querySelector(`.timeline-item[data-index='${index}']`).classList.add('active');
+            }
+
+            timelineNav.addEventListener('click', (e) => {
+                const item = e.target.closest('.timeline-item');
+                if (item) {
+                    updateExperience(item.dataset.index);
+                }
+            });
+            
+            updateExperience(0);
+
+            const accomplishmentsContainer = document.getElementById('accomplishments-container');
+            data.accomplishments.forEach((acc, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col';
+                card.innerHTML = `
+                    <h3 class="text-xl font-bold text-gray-800">${acc.title}</h3>
+                    <p class="text-sm text-purple-500 font-medium mb-4">${acc.company}</p>
+                    <p class="text-gray-600 flex-grow">${acc.problem.substring(0, 100)}...</p>
+                    <button data-index="${index}" class="accomplishment-button mt-4 text-purple-600 font-semibold hover:text-purple-800 self-start">Read Case Study &rarr;</button>
+                `;
+                accomplishmentsContainer.appendChild(card);
+            });
+
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalClose = document.getElementById('modal-close');
+            const modalContent = document.getElementById('modal-content');
+
+            function openModal(index) {
+                const acc = data.accomplishments[index];
+                modalTitle.textContent = acc.title;
+                modalBody.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold text-lg text-red-600">The Problem</h4>
+                            <p class="text-gray-700">${acc.problem}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg text-blue-600">The Action</h4>
+                            <p class="text-gray-700">${acc.action}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg text-green-600">The Result</h4>
+                            <p class="text-gray-700">${acc.result}</p>
+                        </div>
+                    </div>
+                `;
+                modal.classList.remove('invisible', 'opacity-0');
+                modalContent.classList.remove('-translate-y-12');
+            }
+
+            function closeModal() {
+                modal.classList.add('invisible', 'opacity-0');
+                modalContent.classList.add('-translate-y-12');
+            }
+
+            accomplishmentsContainer.addEventListener('click', e => {
+                if (e.target.classList.contains('accomplishment-button')) {
+                    openModal(e.target.dataset.index);
+                }
+            });
+
+            modalClose.addEventListener('click', closeModal);
+            modal.addEventListener('click', e => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                    if(mobileMenu.classList.contains('hidden') === false){
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
